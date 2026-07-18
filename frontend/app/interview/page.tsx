@@ -78,7 +78,8 @@ export default function InterviewCoach() {
   const [finalScore,   setFinalScore]   = useState(0);
   const [activeTab,    setActiveTab]    = useState<'practice'|'tips'|'prep'>('practice');
   const [startTime,    setStartTime]    = useState(Date.now());
-  const timerRef  = useRef<NodeJS.Timeout>();
+  // const timerRef  = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const textRef   = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
