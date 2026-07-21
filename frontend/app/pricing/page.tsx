@@ -99,9 +99,14 @@ export default function Pricing() {
                   <span style={{ fontSize: 40, fontWeight: 800, fontFamily: 'Syne' }}>{pricing.price}€</span>
                   <span style={{ fontSize: 13, color: 'var(--muted)' }}>/mois</span>
                 </div>
-                {yearly && 'total' in pricing && (
+                {/* {yearly && 'total' in pricing && (
                   <p style={{ fontSize: 12, color: 'var(--green)', marginBottom: 4 }}>Facturé {pricing.total} · Économie 20%</p>
-                )}
+                )} */}
+                {yearly && 'total' in pricing && (
+  <p style={{ fontSize: 12, color: 'var(--green)', marginBottom: 4 }}>
+    Facturé {String(pricing.total)} · Économie 20%
+  </p>
+)}
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>{plan.limit}</p>
                 <ul style={{ listStyle: 'none', flex: 1, display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 24 }}>
                   {plan.features.map(f => (

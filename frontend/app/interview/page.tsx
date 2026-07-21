@@ -1,10 +1,13 @@
+
+
 'use client';
 // ─────────────────────────────────────────────────────────────────────────────
 // FICHIER : app/interview/page.tsx
 // CORRECTION CORS : appelle /api/interview/* (serveur) au lieu d'Anthropic direct
+// CORRECTION BUILD : useSearchParams() enveloppé dans un <Suspense>
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -54,7 +57,7 @@ function ScoreArc({ score }: { score: number }) {
   );
 }
 
-export default function InterviewCoach() {
+function InterviewCoachContent() {
   const searchParams   = useSearchParams();
   const cvTitle        = searchParams.get('title') || '';
   const cvSkills       = searchParams.get('skills') || '';
@@ -78,14 +81,13 @@ export default function InterviewCoach() {
   const [finalScore,   setFinalScore]   = useState(0);
   const [activeTab,    setActiveTab]    = useState<'practice'|'tips'|'prep'>('practice');
   const [startTime,    setStartTime]    = useState(Date.now());
-  // const timerRef  = useRef<NodeJS.Timeout>();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const textRef   = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (timerActive && timeLeft > 0) timerRef.current = setTimeout(() => setTimeLeft(t => t-1), 1000);
     else if (timeLeft === 0) setTimerActive(false);
-    return () => clearTimeout(timerRef.current);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [timerActive, timeLeft]);
 
   // ── GENERATE QUESTIONS via API route ─────────────────────────────────────
@@ -599,6 +601,630 @@ export default function InterviewCoach() {
     </div>
   );
 }
+
+// Wrapper obligatoire : useSearchParams() doit être enveloppé dans <Suspense>
+// pour permettre le pré-rendu statique (next build / next export).
+export default function InterviewCoach() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', color:'var(--muted)' }}>
+        Chargement...
+      </div>
+    }>
+      <InterviewCoachContent />
+    </Suspense>
+  );
+}
+
+
+
+
+
+
+
+
+
+// 'use client';
+// // ─────────────────────────────────────────────────────────────────────────────
+// // FICHIER : app/interview/page.tsx
+// // CORRECTION CORS : appelle /api/interview/* (serveur) au lieu d'Anthropic direct
+// // ─────────────────────────────────────────────────────────────────────────────
+
+// import { useState, useRef, useEffect } from 'react';
+// import Link from 'next/link';
+// import { useSearchParams } from 'next/navigation';
+
+// type Phase = 'home' | 'setup' | 'session' | 'result';
+// type QType = 'hr' | 'technical' | 'behavioral' | 'situational';
+
+// interface Question {
+//   id: number; type: QType; question: string;
+//   hint: string; difficulty: 'easy' | 'medium' | 'hard'; category?: string;
+// }
+// interface Answer {
+//   question: Question; answer: string; score: number;
+//   feedback: string; strengths: string[]; improvements: string[];
+//   betterAnswer: string; timeSpent: number;
+// }
+
+// const TYPE_CFG: Record<QType, { label: string; color: string; bg: string; icon: string }> = {
+//   hr:          { label:'RH',             color:'#00d68f', bg:'rgba(0,214,143,.08)',  icon:'🤝' },
+//   technical:   { label:'Technique',      color:'#4f8ef7', bg:'rgba(79,142,247,.08)', icon:'💻' },
+//   behavioral:  { label:'Comportemental', color:'#f59e0b', bg:'rgba(245,158,11,.08)', icon:'🧠' },
+//   situational: { label:'Situationnel',   color:'#8b5cf6', bg:'rgba(139,92,246,.08)', icon:'🎯' },
+// };
+
+// const INTERVIEW_TYPES = [
+//   { id:'mixed',      icon:'🎯', title:'Entretien complet',    desc:'RH + Technique + Comportemental', color:'#00d68f' },
+//   { id:'hr',         icon:'🤝', title:'Entretien RH',         desc:'Motivation, soft skills, parcours', color:'#4f8ef7' },
+//   { id:'technical',  icon:'💻', title:'Technique approfondi', desc:'Stack, projets, architecture',      color:'#8b5cf6' },
+//   { id:'behavioral', icon:'🧠', title:'Comportemental STAR',  desc:'Situations réelles, méthode STAR',  color:'#f59e0b' },
+// ];
+
+// function ScoreArc({ score }: { score: number }) {
+//   const color = score >= 80 ? '#00d68f' : score >= 60 ? '#f59e0b' : '#ef4444';
+//   const label = score >= 85 ? 'Excellent !' : score >= 70 ? 'Bien joué' : score >= 55 ? 'Assez bien' : 'À améliorer';
+//   const circ  = 2 * Math.PI * 56;
+//   return (
+//     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+//       <svg width="132" height="132" viewBox="0 0 132 132">
+//         <circle cx="66" cy="66" r="56" fill="none" stroke="var(--bg3)" strokeWidth="10"/>
+//         <circle cx="66" cy="66" r="56" fill="none" stroke={color} strokeWidth="10"
+//           strokeDasharray={`${(score/100)*circ} ${circ}`} strokeLinecap="round"
+//           style={{ transform:'rotate(-90deg)', transformOrigin:'50% 50%', transition:'stroke-dasharray 1.5s ease' }}/>
+//         <text x="66" y="61" textAnchor="middle" style={{ fill:color, fontSize:30, fontWeight:800, fontFamily:'Syne' }}>{score}</text>
+//         <text x="66" y="77" textAnchor="middle" style={{ fill:'#7a8499', fontSize:11 }}>/ 100</text>
+//       </svg>
+//       <span style={{ fontSize:13, fontWeight:700, color, background:`${color}18`, border:`1px solid ${color}44`, padding:'5px 16px', borderRadius:20 }}>{label}</span>
+//     </div>
+//   );
+// }
+
+// export default function InterviewCoach() {
+//   const searchParams   = useSearchParams();
+//   const cvTitle        = searchParams.get('title') || '';
+//   const cvSkills       = searchParams.get('skills') || '';
+//   const fromCV         = searchParams.get('from') === 'cv';
+
+//   const [phase,        setPhase]        = useState<Phase>('home');
+//   const [interviewType,setInterviewType]= useState('mixed');
+//   const [jobTitle,     setJobTitle]     = useState(cvTitle);
+//   const [company,      setCompany]      = useState('');
+//   const [cvDescription,setCvDescription]= useState(cvSkills ? `Compétences : ${cvSkills}` : '');
+//   const [questions,    setQuestions]    = useState<Question[]>([]);
+//   const [currentQ,     setCurrentQ]     = useState(0);
+//   const [answer,       setAnswer]       = useState('');
+//   const [answers,      setAnswers]      = useState<Answer[]>([]);
+//   const [loading,      setLoading]      = useState(false);
+//   const [evaluating,   setEvaluating]   = useState(false);
+//   const [currentEval,  setCurrentEval]  = useState<Partial<Answer>|null>(null);
+//   const [timeLeft,     setTimeLeft]     = useState(120);
+//   const [timerActive,  setTimerActive]  = useState(false);
+//   const [showHint,     setShowHint]     = useState(false);
+//   const [finalScore,   setFinalScore]   = useState(0);
+//   const [activeTab,    setActiveTab]    = useState<'practice'|'tips'|'prep'>('practice');
+//   const [startTime,    setStartTime]    = useState(Date.now());
+//   // const timerRef  = useRef<NodeJS.Timeout>();
+//   const timerRef = useRef<NodeJS.Timeout | null>(null);
+//   const textRef   = useRef<HTMLTextAreaElement>(null);
+
+//   useEffect(() => {
+//     if (timerActive && timeLeft > 0) timerRef.current = setTimeout(() => setTimeLeft(t => t-1), 1000);
+//     else if (timeLeft === 0) setTimerActive(false);
+//     return () => clearTimeout(timerRef.current);
+//   }, [timerActive, timeLeft]);
+
+//   // ── GENERATE QUESTIONS via API route ─────────────────────────────────────
+//   const startInterview = async () => {
+//     setLoading(true);
+//     try {
+//       const res = await fetch('/api/interview/questions', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({
+//           jobTitle, company, skills: cvSkills || cvDescription,
+//           interviewType, cvDescription,
+//         }),
+//       });
+//       const data = await res.json();
+//       const qs: Question[] = (res.ok && data.questions?.length)
+//         ? data.questions
+//         : getFallback(interviewType);
+
+//       setQuestions(qs);
+//       setCurrentQ(0); setAnswers([]); setAnswer('');
+//       setTimeLeft(120); setTimerActive(false); setShowHint(false); setCurrentEval(null);
+//       setStartTime(Date.now());
+//       setPhase('session');
+//     } catch {
+//       setQuestions(getFallback(interviewType));
+//       setPhase('session');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const getFallback = (type: string): Question[] => {
+//     const all: Question[] = [
+//       { id:1, type:'hr',          question:'Parlez-moi de vous et de votre parcours.',                                                      hint:'Structure : Formation → Expériences clés → Objectif. Max 2 min.',             difficulty:'easy',   category:'Présentation' },
+//       { id:2, type:'hr',          question:`Pourquoi voulez-vous ce poste${jobTitle?` de ${jobTitle}`:''}?`,                                 hint:'Montre tes recherches sur l\'entreprise. Cite des projets ou valeurs.',        difficulty:'easy',   category:'Motivation'   },
+//       { id:3, type:'behavioral',  question:'Décrivez une situation où vous avez résolu un conflit dans une équipe.',                          hint:'STAR : Situation → Tâche → Action → Résultat mesurable.',                    difficulty:'medium', category:'Conflit'      },
+//       { id:4, type:'technical',   question:`Quels sont tes 2 projets techniques les plus marquants${cvSkills?` (en rapport avec ${cvSkills.split(',').slice(0,2).join(', ')})`:''}?`, hint:'Technologies, ton rôle, résultats mesurables.', difficulty:'medium', category:'Projets' },
+//       { id:5, type:'situational', question:'Un bug critique est découvert en prod 2h avant une démo client. Que fais-tu ?',                   hint:'Montre : priorisation, communication, résolution.',                           difficulty:'hard',   category:'Crise'        },
+//       { id:6, type:'behavioral',  question:'Parlez d\'un échec professionnel et ce que vous en avez appris.',                                 hint:'Sois honnête, montre ta capacité de recul et d\'apprentissage.',              difficulty:'medium', category:'Résilience'   },
+//     ];
+//     if (type === 'hr')        return all.filter(q => q.type==='hr'||q.type==='behavioral').slice(0,5);
+//     if (type === 'technical') return all.filter(q => q.type==='technical'||q.type==='situational').slice(0,5);
+//     if (type === 'behavioral')return all.filter(q => q.type==='behavioral'||q.type==='situational').slice(0,5);
+//     return all.slice(0,6);
+//   };
+
+//   // ── EVALUATE via API route ────────────────────────────────────────────────
+//   const submitAnswer = async () => {
+//     if (!answer.trim() || evaluating) return;
+//     setEvaluating(true);
+//     setTimerActive(false);
+//     const timeSpent = Math.round((Date.now() - startTime) / 1000);
+
+//     try {
+//       const res = await fetch('/api/interview/evaluate', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({
+//           question:     questions[currentQ].question,
+//           answer,
+//           questionType: questions[currentQ].type,
+//           difficulty:   questions[currentQ].difficulty,
+//           skills:       cvSkills || cvDescription,
+//           jobTitle,
+//         }),
+//       });
+
+//       const data = await res.json();
+
+//       if (res.ok && data.score) {
+//         setCurrentEval({ question: questions[currentQ], answer, timeSpent, ...data });
+//       } else {
+//         throw new Error('Évaluation échouée');
+//       }
+//     } catch {
+//       // Fallback basé sur la longueur de la réponse
+//       const words = answer.split(' ').filter(Boolean).length;
+//       setCurrentEval({
+//         question: questions[currentQ], answer, timeSpent,
+//         score:        words > 60 ? 72 : words > 30 ? 58 : 42,
+//         feedback:     words > 60
+//           ? 'Réponse développée. Enrichis avec des chiffres concrets et la méthode STAR.'
+//           : words > 30
+//           ? 'Réponse correcte mais trop courte. Développe avec un exemple précis.'
+//           : 'Réponse insuffisante. Développe davantage avec des exemples concrets.',
+//         strengths:    words > 40 ? ['Tu as répondu à la question posée', 'Réponse structurée'] : ['Tu as tenté de répondre'],
+//         improvements: ['Ajoute des chiffres concrets (ex: -40% de temps, équipe de 5 pers.)', 'Structure avec STAR : Situation → Tâche → Action → Résultat'],
+//         betterAnswer: `Pour cette question, une réponse excellente utiliserait la méthode STAR avec des métriques précises. Exemple : "Dans mon expérience chez [Entreprise], j'ai rencontré [situation précise]. Ma responsabilité était de [tâche]. J'ai décidé de [actions concrètes], ce qui a permis d'obtenir [résultat chiffré]."`,
+//       });
+//     } finally {
+//       setEvaluating(false);
+//     }
+//   };
+
+//   const nextQuestion = () => {
+//     if (currentEval) setAnswers(prev => [...prev, currentEval as Answer]);
+//     if (currentQ < questions.length - 1) {
+//       setCurrentQ(q => q+1);
+//       setAnswer(''); setCurrentEval(null); setShowHint(false);
+//       setTimeLeft(120); setTimerActive(false); setStartTime(Date.now());
+//       textRef.current?.focus();
+//     } else {
+//       const all = [...answers, ...(currentEval ? [currentEval as Answer] : [])];
+//       setFinalScore(Math.round(all.reduce((s,a) => s+(a.score||70), 0) / (all.length||1)));
+//       setAnswers(all);
+//       setPhase('result');
+//     }
+//   };
+
+//   const q = questions[currentQ];
+//   const mm = Math.floor(timeLeft/60);
+//   const ss = (timeLeft%60).toString().padStart(2,'0');
+
+//   return (
+//     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+//       <style>{`
+//         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+//         @keyframes spin   { to{transform:rotate(360deg)} }
+//         @keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.4} }
+//         .fu   { animation: fadeUp .3s ease forwards; }
+//         .spin { animation: spin 1s linear infinite; display:inline-block; }
+//         .pulse{ animation: pulse 1.5s ease infinite; }
+//         textarea, input { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:12px 14px; color:var(--text); font-size:14px; width:100%; outline:none; font-family:inherit; transition:border-color .15s; }
+//         textarea:focus, input:focus { border-color:#8b5cf6; }
+//         .btn  { padding:9px 18px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--text); cursor:pointer; font-size:13px; font-weight:500; transition:all .2s; font-family:inherit; }
+//         .btn:hover { background:var(--bg3); }
+//         .btn-g  { background:var(--green); border-color:var(--green); color:#000; font-weight:700; }
+//         .btn-g:hover { opacity:.9; }
+//         .btn-g:disabled { opacity:.5; cursor:not-allowed; }
+//         .glass  { background:var(--bg2); border:1px solid var(--border); border-radius:14px; }
+//         .tag    { font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; }
+//       `}</style>
+
+//       {/* NAVBAR */}
+//       <nav style={{ background:'var(--bg2)', borderBottom:'1px solid var(--border)', padding:'0 24px', height:54, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100 }}>
+//         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+//           <div style={{ width:8, height:8, borderRadius:'50%', background:'#8b5cf6', boxShadow:'0 0 8px #8b5cf6' }}/>
+//           <span style={{ fontFamily:'Syne', fontWeight:800, fontSize:16 }}>Interview Coach <span style={{ color:'#8b5cf6' }}>IA</span></span>
+//           {fromCV && cvTitle && (
+//             <span style={{ fontSize:11, background:'rgba(139,92,246,.15)', color:'#8b5cf6', border:'1px solid rgba(139,92,246,.3)', borderRadius:20, padding:'2px 10px' }}>
+//               📄 {cvTitle}
+//             </span>
+//           )}
+//         </div>
+//         <div style={{ display:'flex', gap:10 }}>
+//           <Link href="/welcome"   className="btn" style={{ fontSize:12, padding:'5px 14px' }}>← Accueil</Link>
+//           <Link href="/cv"        className="btn" style={{ fontSize:12, padding:'5px 14px' }}>📄 Mon CV</Link>
+//           <Link href="/dashboard" className="btn" style={{ fontSize:12, padding:'5px 14px' }}>🔍 Offres</Link>
+//         </div>
+//       </nav>
+
+//       <div style={{ maxWidth:860, margin:'0 auto', padding:'32px 20px' }}>
+
+//         {/* ══════════════ HOME ══════════════ */}
+//         {phase === 'home' && (
+//           <div className="fu">
+
+//             {/* Banner CV */}
+//             {fromCV && cvTitle && (
+//               <div style={{ background:'rgba(139,92,246,.1)', border:'1px solid rgba(139,92,246,.3)', borderRadius:12, padding:'16px 20px', marginBottom:28, display:'flex', gap:16, alignItems:'center' }}>
+//                 <span style={{ fontSize:24 }}>🎯</span>
+//                 <div>
+//                   <p style={{ fontWeight:600, marginBottom:3 }}>Questions personnalisées depuis ton CV</p>
+//                   <p style={{ fontSize:13, color:'var(--muted)', lineHeight:1.5 }}>
+//                     Poste : <strong style={{ color:'var(--text)' }}>{cvTitle}</strong>
+//                     {cvSkills && <> · Compétences : <strong style={{ color:'#8b5cf6' }}>{cvSkills.split(',').slice(0,4).join(', ')}{cvSkills.split(',').length>4?'...':''}</strong></>}
+//                   </p>
+//                 </div>
+//               </div>
+//             )}
+
+//             <div style={{ textAlign:'center', marginBottom:36 }}>
+//               <div style={{ fontSize:52, marginBottom:14 }}>🎤</div>
+//               <h1 style={{ fontSize:30, marginBottom:8, fontFamily:'Syne' }}>Interview Coach <span style={{ color:'#8b5cf6' }}>IA</span></h1>
+//               <p style={{ color:'var(--muted)', fontSize:14, maxWidth:480, margin:'0 auto', lineHeight:1.7 }}>
+//                 L'IA génère des questions personnalisées basées sur ton profil, évalue chaque réponse avec un feedback détaillé et une réponse modèle complète.
+//               </p>
+//             </div>
+
+//             {/* Tabs */}
+//             <div style={{ display:'flex', gap:4, marginBottom:28, background:'var(--bg2)', padding:4, borderRadius:10, border:'1px solid var(--border)', width:'fit-content', margin:'0 auto 28px' }}>
+//               {(['practice','tips','prep'] as const).map(k => (
+//                 <button key={k} onClick={() => setActiveTab(k)}
+//                   style={{ padding:'8px 16px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:500, transition:'all .2s', background:activeTab===k?'#8b5cf6':'transparent', color:activeTab===k?'#fff':'var(--muted)' }}>
+//                   {k==='practice'?'🎯 S\'entraîner':k==='tips'?'💡 Conseils':'📋 Préparation'}
+//                 </button>
+//               ))}
+//             </div>
+
+//             {/* TAB: PRACTICE */}
+//             {activeTab === 'practice' && (
+//               <div className="fu">
+//                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:12, marginBottom:22 }}>
+//                   {INTERVIEW_TYPES.map(t => (
+//                     <div key={t.id} onClick={() => setInterviewType(t.id)}
+//                       style={{ border:`1.5px solid ${interviewType===t.id?t.color:'var(--border)'}`, borderRadius:12, padding:'16px 14px', cursor:'pointer', background:interviewType===t.id?`${t.color}10`:'var(--bg3)', transition:'all .2s' }}>
+//                       <div style={{ fontSize:26, marginBottom:8 }}>{t.icon}</div>
+//                       <p style={{ fontWeight:600, fontSize:13, color:interviewType===t.id?t.color:'var(--text)', marginBottom:3 }}>{t.title}</p>
+//                       <p style={{ fontSize:11, color:'var(--muted)' }}>{t.desc}</p>
+//                     </div>
+//                   ))}
+//                 </div>
+
+//                 <div className="glass" style={{ padding:22, marginBottom:20 }}>
+//                   <p style={{ fontSize:11, color:'var(--muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:1, marginBottom:14 }}>
+//                     Personnalise l'entretien <span style={{ color:'#8b5cf6' }}>(recommandé)</span>
+//                   </p>
+//                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+//                     <div>
+//                       <label style={{ fontSize:12, color:'var(--muted)', display:'block', marginBottom:6 }}>Poste visé</label>
+//                       <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="ex: Développeur React Senior..."/>
+//                     </div>
+//                     <div>
+//                       <label style={{ fontSize:12, color:'var(--muted)', display:'block', marginBottom:6 }}>Entreprise cible</label>
+//                       <input value={company} onChange={e => setCompany(e.target.value)} placeholder="ex: Google, Vermeg..."/>
+//                     </div>
+//                   </div>
+//                   <div>
+//                     <label style={{ fontSize:12, color:'var(--muted)', display:'block', marginBottom:6 }}>
+//                       Ton profil / compétences <span style={{ color:'#8b5cf6' }}>(pour questions ultra-personnalisées)</span>
+//                     </label>
+//                     <textarea value={cvDescription} onChange={e => setCvDescription(e.target.value)} rows={3} style={{ resize:'vertical' }}
+//                       placeholder="Ex: 4 ans React/Node.js, plateforme SaaS 10k users, Docker, AWS, MongoDB..."/>
+//                   </div>
+//                 </div>
+
+//                 <div style={{ textAlign:'center' }}>
+//                   <button className="btn btn-g" onClick={() => setPhase('setup')} style={{ padding:'13px 40px', fontSize:15 }}>
+//                     🎤 Commencer l'entretien →
+//                   </button>
+//                 </div>
+//               </div>
+//             )}
+
+//             {/* TAB: TIPS */}
+//             {activeTab === 'tips' && (
+//               <div className="fu" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:14 }}>
+//                 {[
+//                   { icon:'⏱️', c:'#00d68f', title:'Méthode STAR',      desc:'Situation → Tâche → Action → Résultat. Structure indispensable pour toute question comportementale. Chaque réponse doit finir par un résultat mesurable.' },
+//                   { icon:'📊', c:'#4f8ef7', title:'Quantifie tout',     desc:'Remplace "j\'ai amélioré les perfs" par "j\'ai réduit le temps de chargement de 8s à 2s, soit -75%". Les chiffres créent la crédibilité.' },
+//                   { icon:'🎯', c:'#8b5cf6', title:'Sois spécifique',    desc:'Cite des noms de technologies précis, des dates, des tailles d\'équipe. Évite les généralités comme "j\'ai géré un gros projet".' },
+//                   { icon:'🔄', c:'#f59e0b', title:'Reformule',          desc:'"Si je comprends bien, vous me demandez..." — Ça montre ton écoute, te donne du temps, et confirme que tu réponds à la bonne question.' },
+//                   { icon:'🧘', c:'#ef4444', title:'Gère les blancs',     desc:'"Bonne question, laissez-moi réfléchir 2 secondes." Bien vu par les recruteurs — mieux que de bafouiller immédiatement.' },
+//                   { icon:'❓', c:'#00d68f', title:'Prépare tes questions',desc:'3-5 questions intelligentes : challenges de l\'équipe, stack tech, processus d\'onboarding, évolution à 2 ans, prochaine étape RH.' },
+//                 ].map((tip, i) => (
+//                   <div key={i} className="glass" style={{ padding:20 }}>
+//                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+//                       <span style={{ fontSize:22 }}>{tip.icon}</span>
+//                       <h3 style={{ fontSize:14, color:tip.c, fontWeight:700 }}>{tip.title}</h3>
+//                     </div>
+//                     <p style={{ fontSize:13, color:'var(--muted)', lineHeight:1.7 }}>{tip.desc}</p>
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+
+//             {/* TAB: PREP */}
+//             {activeTab === 'prep' && (
+//               <div className="fu" style={{ display:'flex', flexDirection:'column', gap:14 }}>
+//                 {[
+//                   { title:'📚 Avant l\'entretien', items:['Recherche l\'entreprise : news récentes, culture, concurrents, valeurs','Note 3 projets avec métriques (réduction X%, équipe N personnes, impact business)','Prépare 5 questions à poser au recruteur','Relis la fiche de poste et identifie les mots-clés importants','Liste tes forces ET faiblesses avec exemples concrets'] },
+//                   { title:'🎯 Pendant l\'entretien', items:['Arrive / connecte-toi 5 min en avance','Écoute la question COMPLÈTE avant de répondre','Parle lentement, structuré, avec des pauses','Reformule si une question est floue ou ambiguë','Prends des notes si possible'] },
+//                   { title:'📊 Structure STAR détaillée', items:['S → Situation : "Dans mon poste chez X, nous faisions face à..."','T → Tâche : "Ma responsabilité était de... dans ce contexte"','A → Action : "J\'ai décidé de... en faisant concrètement... étape par étape"','R → Résultat : "En résultat, nous avons obtenu +X%, -Y jours, N clients..."','Bonus : "Et j\'en ai appris que..."'] },
+//                   { title:'❓ Questions à poser au recruteur', items:['Quels sont les principaux challenges techniques de ce poste ?','Comment se passe l\'onboarding des nouveaux développeurs ?','Comment les décisions techniques sont-elles prises dans l\'équipe ?','Quelles sont les opportunités d\'évolution à 2 ans ?','Quelle est la prochaine étape du processus de recrutement ?'] },
+//                 ].map((section, i) => (
+//                   <div key={i} className="glass" style={{ padding:20 }}>
+//                     <h3 style={{ fontSize:15, marginBottom:14 }}>{section.title}</h3>
+//                     <ul style={{ listStyle:'none', display:'flex', flexDirection:'column', gap:8 }}>
+//                       {section.items.map((item, j) => (
+//                         <li key={j} style={{ display:'flex', gap:10, fontSize:13 }}>
+//                           <span style={{ color:'var(--green)', flexShrink:0 }}>✓</span>
+//                           <span style={{ color:'var(--muted)', lineHeight:1.6 }}>{item}</span>
+//                         </li>
+//                       ))}
+//                     </ul>
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+//           </div>
+//         )}
+
+//         {/* ══════════════ SETUP ══════════════ */}
+//         {phase === 'setup' && (
+//           <div className="glass fu" style={{ padding:36, maxWidth:520, margin:'0 auto', textAlign:'center' }}>
+//             <div style={{ fontSize:44, marginBottom:16 }}>🤖</div>
+//             <h2 style={{ fontSize:22, marginBottom:8 }}>L'IA prépare tes questions</h2>
+//             <p style={{ color:'var(--muted)', fontSize:14, lineHeight:1.7, marginBottom:20 }}>
+//               Type : <strong style={{ color:'var(--text)' }}>{INTERVIEW_TYPES.find(t=>t.id===interviewType)?.title}</strong>
+//               {jobTitle && <><br/>Poste : <strong style={{ color:'#8b5cf6' }}>{jobTitle}</strong></>}
+//               {company && <> chez <strong>{company}</strong></>}
+//             </p>
+//             <div style={{ background:'rgba(139,92,246,.08)', border:'1px solid rgba(139,92,246,.2)', borderRadius:10, padding:'14px 18px', marginBottom:24, textAlign:'left' }}>
+//               <p style={{ fontSize:12, color:'#8b5cf6', fontWeight:700, marginBottom:10 }}>🧠 Ce que l'IA fait :</p>
+//               {['Analyse ton profil et tes compétences exactes','Génère des questions ciblées sur ta stack','Adapte la difficulté à ton niveau','Évalue chaque réponse avec une réponse modèle complète'].map((item,i) => (
+//                 <div key={i} style={{ display:'flex', gap:8, marginBottom:6, fontSize:12 }}>
+//                   <span style={{ color:'#8b5cf6' }}>→</span>
+//                   <span style={{ color:'var(--muted)' }}>{item}</span>
+//                 </div>
+//               ))}
+//             </div>
+//             <div style={{ display:'flex', gap:12, justifyContent:'center' }}>
+//               <button className="btn" onClick={() => setPhase('home')}>← Retour</button>
+//               <button className="btn btn-g" onClick={startInterview} disabled={loading} style={{ padding:'11px 28px' }}>
+//                 {loading ? <><span className="spin">⟳</span> Génération IA...</> : '🚀 Démarrer →'}
+//               </button>
+//             </div>
+//           </div>
+//         )}
+
+//         {/* ══════════════ SESSION ══════════════ */}
+//         {phase === 'session' && q && (
+//           <div className="fu">
+//             {/* Progress */}
+//             <div style={{ marginBottom:20 }}>
+//               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+//                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+//                   <span style={{ fontSize:13, color:'var(--muted)' }}>Question {currentQ+1} / {questions.length}</span>
+//                   {q.category && <span className="tag" style={{ background:'rgba(139,92,246,.12)', color:'#8b5cf6', border:'1px solid rgba(139,92,246,.25)' }}>{q.category}</span>}
+//                 </div>
+//                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+//                   <div style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg3)', border:`1px solid ${timeLeft<30?'rgba(239,68,68,.4)':'var(--border)'}`, borderRadius:20, padding:'5px 14px' }}>
+//                     <span style={{ fontSize:11, color:timeLeft<30?'#ef4444':'var(--muted)' }}>⏱</span>
+//                     <span style={{ fontSize:13, fontWeight:700, color:timeLeft<30?'#ef4444':'var(--text)', fontFamily:'monospace' }}>{mm}:{ss}</span>
+//                     {timerActive && timeLeft < 30 && <span className="pulse" style={{ fontSize:10, color:'#ef4444' }}>!</span>}
+//                   </div>
+//                   {!timerActive && !currentEval && (
+//                     <button onClick={() => { setTimerActive(true); setStartTime(Date.now()); }} className="btn" style={{ fontSize:11, padding:'5px 12px' }}>▶ Timer</button>
+//                   )}
+//                 </div>
+//               </div>
+//               <div style={{ height:4, background:'var(--bg3)', borderRadius:2, overflow:'hidden' }}>
+//                 <div style={{ height:'100%', width:`${((currentQ+1)/questions.length)*100}%`, background:'linear-gradient(90deg,#8b5cf6,#4f8ef7)', borderRadius:2, transition:'width .5s' }}/>
+//               </div>
+//               <div style={{ display:'flex', gap:6, marginTop:8, justifyContent:'center' }}>
+//                 {questions.map((_,i) => (
+//                   <div key={i} style={{ width:8, height:8, borderRadius:'50%', background:i<currentQ?'var(--green)':i===currentQ?'#8b5cf6':'var(--bg3)', transition:'all .3s' }}/>
+//                 ))}
+//               </div>
+//             </div>
+
+//             {/* Question card */}
+//             <div className="glass" style={{ padding:24, marginBottom:16, border:'1px solid rgba(139,92,246,.2)' }}>
+//               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+//                 <span style={{ fontSize:20 }}>{TYPE_CFG[q.type]?.icon}</span>
+//                 <span className="tag" style={{ background:TYPE_CFG[q.type]?.bg, color:TYPE_CFG[q.type]?.color, border:`1px solid ${TYPE_CFG[q.type]?.color}44` }}>{TYPE_CFG[q.type]?.label}</span>
+//                 <span className="tag" style={{ background:q.difficulty==='easy'?'rgba(0,214,143,.1)':q.difficulty==='medium'?'rgba(245,158,11,.1)':'rgba(239,68,68,.1)', color:q.difficulty==='easy'?'#00d68f':q.difficulty==='medium'?'#f59e0b':'#ef4444', border:'none' }}>
+//                   {q.difficulty==='easy'?'Facile':q.difficulty==='medium'?'Moyen':'Difficile'}
+//                 </span>
+//               </div>
+//               <p style={{ fontSize:17, fontWeight:600, lineHeight:1.55, marginBottom:16 }}>{q.question}</p>
+//               <button onClick={() => setShowHint(!showHint)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, padding:0 }}>
+//                 💡 {showHint?'Cacher':'Voir'} l'indice
+//               </button>
+//               {showHint && (
+//                 <div style={{ marginTop:10, padding:'12px 14px', background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:8, fontSize:13, color:'#f59e0b', lineHeight:1.6 }}>
+//                   {q.hint}
+//                 </div>
+//               )}
+//             </div>
+
+//             {/* Answer / Evaluation */}
+//             {!currentEval ? (
+//               <div className="glass" style={{ padding:20, marginBottom:16 }}>
+//                 <label style={{ fontSize:11, color:'var(--muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:.5, display:'block', marginBottom:10 }}>Ta réponse</label>
+//                 <textarea ref={textRef} value={answer} onChange={e => setAnswer(e.target.value)} rows={6}
+//                   placeholder="Rédige ta réponse ici... Utilise des exemples concrets, des chiffres, et structure avec STAR si possible."
+//                   style={{ resize:'vertical', lineHeight:1.7 }}
+//                   onKeyDown={e => { if(e.key==='Enter'&&e.ctrlKey) submitAnswer(); }}/>
+//                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10 }}>
+//                   <span style={{ fontSize:11, color:'var(--muted)' }}>
+//                     {answer.split(' ').filter(Boolean).length} mots · Ctrl+Enter pour valider
+//                   </span>
+//                   <button className="btn btn-g" onClick={submitAnswer} disabled={!answer.trim()||evaluating}
+//                     style={{ padding:'9px 22px', display:'flex', alignItems:'center', gap:8 }}>
+//                     {evaluating ? <><span className="spin">⟳</span> Évaluation IA...</> : '🤖 Évaluer ma réponse →'}
+//                   </button>
+//                 </div>
+//               </div>
+//             ) : (
+//               <div className="fu" style={{ display:'flex', flexDirection:'column', gap:12 }}>
+//                 {/* Score */}
+//                 <div className="glass" style={{ padding:20, border:`1px solid ${(currentEval.score||0)>=80?'rgba(0,214,143,.3)':(currentEval.score||0)>=60?'rgba(245,158,11,.3)':'rgba(239,68,68,.3)'}`, display:'flex', gap:18, alignItems:'flex-start' }}>
+//                   <div style={{ width:60, height:60, borderRadius:'50%', flexShrink:0,
+//                     background:`${(currentEval.score||0)>=80?'#00d68f':(currentEval.score||0)>=60?'#f59e0b':'#ef4444'}18`,
+//                     border:`2px solid ${(currentEval.score||0)>=80?'#00d68f':(currentEval.score||0)>=60?'#f59e0b':'#ef4444'}`,
+//                     display:'flex', alignItems:'center', justifyContent:'center',
+//                     fontWeight:800, fontSize:18,
+//                     color:(currentEval.score||0)>=80?'#00d68f':(currentEval.score||0)>=60?'#f59e0b':'#ef4444' }}>
+//                     {currentEval.score}
+//                   </div>
+//                   <div style={{ flex:1 }}>
+//                     <p style={{ fontWeight:600, fontSize:14, marginBottom:6 }}>Feedback IA</p>
+//                     <p style={{ fontSize:13, color:'var(--muted)', lineHeight:1.6 }}>{currentEval.feedback}</p>
+//                     {currentEval.timeSpent && <p style={{ fontSize:11, color:'var(--muted)', marginTop:5 }}>⏱ {currentEval.timeSpent}s de réflexion</p>}
+//                   </div>
+//                 </div>
+
+//                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+//                   {(currentEval.strengths?.length||0) > 0 && (
+//                     <div className="glass" style={{ padding:16 }}>
+//                       <p style={{ fontSize:11, color:'#00d68f', fontWeight:700, textTransform:'uppercase', letterSpacing:.5, marginBottom:10 }}>💪 Points forts</p>
+//                       {currentEval.strengths?.map((s,i) => (
+//                         <div key={i} style={{ display:'flex', gap:8, fontSize:12, marginBottom:7 }}>
+//                           <span style={{ color:'#00d68f', flexShrink:0 }}>✓</span>
+//                           <span style={{ color:'var(--muted)', lineHeight:1.6 }}>{s}</span>
+//                         </div>
+//                       ))}
+//                     </div>
+//                   )}
+//                   {(currentEval.improvements?.length||0) > 0 && (
+//                     <div className="glass" style={{ padding:16 }}>
+//                       <p style={{ fontSize:11, color:'#f59e0b', fontWeight:700, textTransform:'uppercase', letterSpacing:.5, marginBottom:10 }}>🔧 À améliorer</p>
+//                       {currentEval.improvements?.map((s,i) => (
+//                         <div key={i} style={{ display:'flex', gap:8, fontSize:12, marginBottom:7 }}>
+//                           <span style={{ color:'#f59e0b', flexShrink:0 }}>→</span>
+//                           <span style={{ color:'var(--muted)', lineHeight:1.6 }}>{s}</span>
+//                         </div>
+//                       ))}
+//                     </div>
+//                   )}
+//                 </div>
+
+//                 {/* Better answer - la partie la plus importante */}
+//                 {currentEval.betterAnswer && (
+//                   <div className="glass" style={{ padding:20, border:'1px solid rgba(79,142,247,.25)', background:'rgba(79,142,247,.06)' }}>
+//                     <p style={{ fontSize:11, color:'#4f8ef7', fontWeight:700, textTransform:'uppercase', letterSpacing:.5, marginBottom:12 }}>✨ Réponse modèle — apprends et adapte</p>
+//                     <p style={{ fontSize:13, color:'var(--text)', lineHeight:1.8, fontStyle:'italic', borderLeft:'3px solid #4f8ef7', paddingLeft:14 }}>
+//                       "{currentEval.betterAnswer}"
+//                     </p>
+//                   </div>
+//                 )}
+
+//                 <div style={{ display:'flex', justifyContent:'flex-end' }}>
+//                   <button className="btn btn-g" onClick={nextQuestion} style={{ padding:'11px 28px', fontSize:14 }}>
+//                     {currentQ < questions.length-1 ? 'Question suivante →' : 'Voir mon résultat final →'}
+//                   </button>
+//                 </div>
+//               </div>
+//             )}
+//           </div>
+//         )}
+
+//         {/* ══════════════ RESULT ══════════════ */}
+//         {phase === 'result' && (
+//           <div className="fu">
+//             <div style={{ textAlign:'center', marginBottom:32 }}>
+//               <h1 style={{ fontSize:28, marginBottom:6, fontFamily:'Syne' }}>Entretien terminé ! 🎉</h1>
+//               <p style={{ color:'var(--muted)', fontSize:14 }}>Score global et recommandations personnalisées</p>
+//             </div>
+
+//             <div className="glass" style={{ padding:32, textAlign:'center', marginBottom:24, border:`1px solid ${finalScore>=80?'rgba(0,214,143,.3)':finalScore>=60?'rgba(245,158,11,.3)':'rgba(239,68,68,.3)'}` }}>
+//               <ScoreArc score={finalScore}/>
+//               <p style={{ fontSize:14, color:'var(--muted)', marginTop:16, lineHeight:1.6 }}>
+//                 {finalScore>=85?'🎉 Excellent ! Niveau de préparation remarquable. Continue à pratiquer pour maintenir ce niveau.':
+//                  finalScore>=70?'👍 Bien joué ! Peaufine les points d\'amélioration ci-dessous pour être imbattable.':
+//                  finalScore>=55?'💪 Bon début ! Focalise-toi sur la méthode STAR et les métriques chiffrées.':
+//                  '📚 Continue l\'entraînement régulièrement — la progression est rapide avec de la pratique quotidienne.'}
+//               </p>
+//               <div style={{ display:'flex', gap:24, justifyContent:'center', marginTop:16, flexWrap:'wrap' }}>
+//                 {[
+//                   { n:answers.filter(a=>a.score>=80).length, label:'Excellentes', color:'#00d68f' },
+//                   { n:answers.filter(a=>a.score>=60&&a.score<80).length, label:'Bonnes', color:'#f59e0b' },
+//                   { n:answers.filter(a=>a.score<60).length, label:'À améliorer', color:'#ef4444' },
+//                 ].map(({ n, label, color }, i) => (
+//                   <div key={i} style={{ textAlign:'center' }}>
+//                     <p style={{ fontSize:26, fontWeight:800, color, margin:0 }}>{n}</p>
+//                     <p style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{label}</p>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+
+//             <h3 style={{ fontSize:15, fontWeight:700, marginBottom:14 }}>Analyse détaillée</h3>
+//             <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:28 }}>
+//               {answers.map((a,i) => (
+//                 <div key={i} className="glass" style={{ padding:'16px 20px' }}>
+//                   <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+//                     <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
+//                       background:`${a.score>=80?'#00d68f':a.score>=60?'#f59e0b':'#ef4444'}18`,
+//                       border:`2px solid ${a.score>=80?'#00d68f':a.score>=60?'#f59e0b':'#ef4444'}`,
+//                       display:'flex', alignItems:'center', justifyContent:'center',
+//                       fontWeight:800, fontSize:14,
+//                       color:a.score>=80?'#00d68f':a.score>=60?'#f59e0b':'#ef4444' }}>
+//                       {a.score}
+//                     </div>
+//                     <div style={{ flex:1 }}>
+//                       <div style={{ display:'flex', gap:8, marginBottom:4, flexWrap:'wrap', alignItems:'center' }}>
+//                         <span className="tag" style={{ background:TYPE_CFG[a.question?.type]?.bg, color:TYPE_CFG[a.question?.type]?.color }}>{TYPE_CFG[a.question?.type]?.icon} {TYPE_CFG[a.question?.type]?.label}</span>
+//                         {a.question?.category && <span style={{ fontSize:11, color:'var(--muted)' }}>{a.question.category}</span>}
+//                       </div>
+//                       <p style={{ fontSize:13, fontWeight:600, marginBottom:4 }}>Q{i+1}: {a.question?.question?.slice(0,90)}{(a.question?.question?.length||0)>90?'...':''}</p>
+//                       <p style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>{a.feedback}</p>
+//                     </div>
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+
+//             <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+//               <button className="btn btn-g" onClick={() => { setPhase('home'); setAnswers([]); setCurrentQ(0); setAnswer(''); setCurrentEval(null); }} style={{ padding:'11px 22px' }}>
+//                 🔄 Recommencer
+//               </button>
+//               <Link href="/cv"        className="btn" style={{ padding:'11px 22px' }}>📄 Améliorer mon CV</Link>
+//               <Link href="/dashboard" className="btn" style={{ padding:'11px 22px' }}>🔍 Chercher des offres</Link>
+//             </div>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 // 'use client';
 // // app/interview/page.tsx
