@@ -26,7 +26,19 @@ router.post('/login', async (req, res) => {
     res.json({ token: sign(user._id), user: fmt(user) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+router.get('/test', (req,res)=>{
+  res.json({message:"Auth route OK"});
+});
 
 router.get('/me', auth, (req, res) => res.json({ user: fmt(req.user) }));
+
 
 module.exports = router;

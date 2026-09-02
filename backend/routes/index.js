@@ -165,7 +165,27 @@ authRouter.post('/login', async (req, res) => {
   }
 });
 
+// Voir tous les utilisateurs
+authRouter.get('/users', async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
 
+    res.json(users);
+
+  } catch (e) {
+    res.status(500).json({
+      error: e.message
+    });
+  }
+});
+
+
+// Test route
+authRouter.get('/test', (req, res) => {
+  res.json({
+    message: "Auth route OK"
+  });
+});
 authRouter.get('/me', auth, (req, res) => {
   res.json({ user: fmt(req.user) });
 });

@@ -1,6 +1,6 @@
 
 // app/api/cv/chat/route.ts
-// Assistant CV IA — utilise Groq API (llama-3.3-70b-versatile)
+// Assistant CV IA — utilise Groq API (openai/gpt-oss-20b)
 // Bilingue FR/EN · Expert CV professionnel
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -129,7 +129,7 @@ if (!message || typeof message !== "string") {
         'Authorization': `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama3-70b-8192',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: userPrompt },

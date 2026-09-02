@@ -1,8 +1,11 @@
+# Next.js
+.next/
+out/
+
+# dependencies
 node_modules/
+
+# env files
 .env
 .env.local
-.env.*
-dist/
-build/
-uploads/
-*.log
+.env.production
