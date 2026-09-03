@@ -192,6 +192,43 @@ export default function Dashboard() {
                   </div>
                   <button className="btn" style={{ fontSize:12, padding:'5px 12px' }} onClick={()=>{setCv(null);if(fileRef.current)fileRef.current.value='';}}>Changer</button>
                 </div>
+                {/* Ajoute ce bloc entre le bandeau vert et le bouton Continuer */}
+<div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px', marginBottom:20 }}>
+  <p style={{ fontSize:10, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:.6, marginBottom:14 }}>Profil détecté</p>
+  
+  {cv.analysis?.jobTitles?.length>0 && (
+    <div style={{ marginBottom:12 }}>
+      <p style={{ fontSize:12, color:'var(--muted)', marginBottom:7 }}>Postes recommandés :</p>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+        {cv.analysis.jobTitles.map((t:string)=>(
+          <span key={t} style={{ fontSize:12, padding:'4px 11px', borderRadius:20, background:'rgba(139,92,246,.08)', color:'var(--purple)', border:'1px solid rgba(139,92,246,.2)' }}>{t}</span>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {cv.analysis?.skills?.length>0 && (
+    <div style={{ marginBottom:12 }}>
+      <p style={{ fontSize:12, color:'var(--muted)', marginBottom:7 }}>Compétences :</p>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+        {cv.analysis.skills.slice(0,12).map((s:string)=>(
+          <span key={s} style={{ fontSize:12, padding:'3px 10px', borderRadius:20, background:'var(--green-gl)', color:'var(--green)', border:'1px solid rgba(0,214,143,.2)' }}>{s}</span>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {cv.analysis?.languages?.length>0 && (
+    <div>
+      <p style={{ fontSize:12, color:'var(--muted)', marginBottom:7 }}>Langues :</p>
+      <div style={{ display:'flex', gap:5 }}>
+        {cv.analysis.languages.map((l:string)=>(
+          <span key={l} style={{ fontSize:12, padding:'3px 10px', borderRadius:20, background:'rgba(245,158,11,.08)', color:'var(--amber)', border:'1px solid rgba(245,158,11,.2)' }}>{l}</span>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
                 <div style={{ display:'flex', justifyContent:'flex-end' }}>
                   <button className="btn btn-primary" onClick={()=>setStep(1)}>Continuer → Choisir le pays</button>
                 </div>
