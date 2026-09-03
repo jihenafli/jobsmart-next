@@ -2,57 +2,166 @@ const Groq = require('groq-sdk');
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL = 'openai/gpt-oss-20b';
 
-function clean(text) {
-  return text.replace(/```json/g, '').replace(/```/g, '').trim();
+// ✅ Extrait le premier bloc JSON valide dans n'importe quelle réponse
+function extractJSON(text) {
+  // Enlève les backticks
+  text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+  
+  // Cherche le premier { ... } valide
+  const start = text.indexOf('{');
+  const end   = text.lastIndexOf('}');
+  
+  if (start === -1 || end === -1) throw new Error('Pas de JSON trouvé');
+  
+  return JSON.parse(text.slice(start, end + 1));
 }
 
 class ResumeAgent {
-  // Analyser le CV et extraire le profil complet
+
   async analyze(cvText) {
     console.log('🤖 Resume Agent: analyse CV...');
+    
     const res = await groq.chat.completions.create({
-      model: MODEL, temperature: 0.1, max_tokens: 1200,
-      messages: [{ role: 'user', content: `Tu es un expert RH. Analyse ce CV et réponds UNIQUEMENT en JSON valide sans backticks.
+      model: MODEL,
+      temperature: 0.1,
+      max_tokens: 1200,
+      messages: [{
+        role: 'user',
+        content: `Tu es un expert RH. Analyse ce CV.
+Réponds UNIQUEMENT avec un objet JSON valide, rien d'autre avant ou après.
 
 CV:
 ${cvText.slice(0, 3500)}
 
-JSON attendu:
+Format de réponse (JSON pur, pas de texte autour):
 {
   "skills": ["compétence1", "compétence2"],
-  "experience": "junior",
-  "education": "Master en Informatique",
+  "experience": "junior ou senior ou mid-level",
+  "education": "diplôme détecté",
   "languages": ["Français", "Anglais"],
-  "jobTitles": ["Développeur IA", "Data Scientist"],
-  "summary": "Résumé professionnel en 2 phrases.",
+  "jobTitles": ["Titre 1", "Titre 2", "Titre 3"],
+  "summary": "Résumé en 2 phrases.",
   "atsScore": 78,
-  "missingKeywords": ["Docker", "Kubernetes"],
-  "strengths": ["Fort en Python", "Expérience IoT"],
-  "improvements": ["Ajouter des métriques chiffrées", "Préciser les projets"]
-}` }],
+  "missingKeywords": ["mot-clé manquant"],
+  "strengths": ["point fort 1"],
+  "improvements": ["amélioration 1"]
+}`
+      }],
     });
+
+    const raw = res.choices[0].message.content;
+    console.log('📄 Resume Agent raw response:', raw.slice(0, 200));
+
     try {
-      return JSON.parse(clean(res.choices[0].message.content));
-    } catch {
-      return { skills: [], experience: 'junior', education: '', languages: [], jobTitles: [], summary: '', atsScore: 60, missingKeywords: [], strengths: [], improvements: [] };
+      const parsed = extractJSON(raw);
+      console.log('✅ Resume Agent parsed:', JSON.stringify(parsed).slice(0, 150));
+      return parsed;
+    } catch (e) {
+      console.error('❌ Resume Agent parse error:', e.message);
+      console.error('Raw was:', raw);
+      // Fallback: retourner des données basiques plutôt que vide
+      return {
+        skills: [],
+        experience: 'junior',
+        education: '',
+        languages: [],
+        jobTitles: [],
+        summary: '',
+        atsScore: 60,
+        missingKeywords: [],
+        strengths: [],
+        improvements: []
+      };
     }
   }
 
-  // Calculer score ATS
   async calculateATS(cvText, jobDescription) {
     const res = await groq.chat.completions.create({
-      model: MODEL, temperature: 0.1, max_tokens: 400,
-      messages: [{ role: 'user', content: `Compare ce CV avec cette offre. JSON uniquement.
+      model: MODEL,
+      temperature: 0.1,
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Compare ce CV avec cette offre. Réponds UNIQUEMENT en JSON pur.
 
-CV (extrait): ${cvText.slice(0, 800)}
+CV: ${cvText.slice(0, 800)}
 Offre: ${jobDescription.slice(0, 600)}
 
 JSON:
-{"atsScore": 85, "matchedKeywords": ["Python", "ML"], "missingKeywords": ["Docker"], "recommendation": "Conseil court"}` }],
+{"atsScore": 85, "matchedKeywords": ["Python"], "missingKeywords": ["Docker"], "recommendation": "conseil"}`
+      }],
     });
-    try { return JSON.parse(clean(res.choices[0].message.content)); }
-    catch { return { atsScore: 65, matchedKeywords: [], missingKeywords: [], recommendation: '' }; }
+
+    try {
+      return extractJSON(res.choices[0].message.content);
+    } catch {
+      return { atsScore: 65, matchedKeywords: [], missingKeywords: [], recommendation: '' };
+    }
   }
 }
 
 module.exports = new ResumeAgent();
+
+
+
+
+
+
+// const Groq = require('groq-sdk');
+// const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// const MODEL = 'openai/gpt-oss-20b';
+
+// function clean(text) {
+//   return text.replace(/```json/g, '').replace(/```/g, '').trim();
+// }
+
+// class ResumeAgent {
+//   // Analyser le CV et extraire le profil complet
+//   async analyze(cvText) {
+//     console.log('🤖 Resume Agent: analyse CV...');
+//     const res = await groq.chat.completions.create({
+//       model: MODEL, temperature: 0.1, max_tokens: 1200,
+//       messages: [{ role: 'user', content: `Tu es un expert RH. Analyse ce CV et réponds UNIQUEMENT en JSON valide sans backticks.
+
+// CV:
+// ${cvText.slice(0, 3500)}
+
+// JSON attendu:
+// {
+//   "skills": ["compétence1", "compétence2"],
+//   "experience": "junior",
+//   "education": "Master en Informatique",
+//   "languages": ["Français", "Anglais"],
+//   "jobTitles": ["Développeur IA", "Data Scientist"],
+//   "summary": "Résumé professionnel en 2 phrases.",
+//   "atsScore": 78,
+//   "missingKeywords": ["Docker", "Kubernetes"],
+//   "strengths": ["Fort en Python", "Expérience IoT"],
+//   "improvements": ["Ajouter des métriques chiffrées", "Préciser les projets"]
+// }` }],
+//     });
+//     try {
+//       return JSON.parse(clean(res.choices[0].message.content));
+//     } catch {
+//       return { skills: [], experience: 'junior', education: '', languages: [], jobTitles: [], summary: '', atsScore: 60, missingKeywords: [], strengths: [], improvements: [] };
+//     }
+//   }
+
+//   // Calculer score ATS
+//   async calculateATS(cvText, jobDescription) {
+//     const res = await groq.chat.completions.create({
+//       model: MODEL, temperature: 0.1, max_tokens: 400,
+//       messages: [{ role: 'user', content: `Compare ce CV avec cette offre. JSON uniquement.
+
+// CV (extrait): ${cvText.slice(0, 800)}
+// Offre: ${jobDescription.slice(0, 600)}
+
+// JSON:
+// {"atsScore": 85, "matchedKeywords": ["Python", "ML"], "missingKeywords": ["Docker"], "recommendation": "Conseil court"}` }],
+//     });
+//     try { return JSON.parse(clean(res.choices[0].message.content)); }
+//     catch { return { atsScore: 65, matchedKeywords: [], missingKeywords: [], recommendation: '' }; }
+//   }
+// }
+
+// module.exports = new ResumeAgent();
