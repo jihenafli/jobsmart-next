@@ -8,7 +8,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-const MODEL = 'llama3-70b-8192';
+const MODEL = 'llama-3.1-8b-instant';
 console.log("🔥🔥🔥 NOUVELLE VERSION APPLY AGENT");
 console.log("🔥 MODEL =", MODEL);
 function clean(t) {
@@ -343,7 +343,7 @@ module.exports = new ApplyAgent();
 
 // const Groq = require('groq-sdk');
 // const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-// // const MODEL = 'llama3-70b-8192';
+// // const MODEL = 'llama-3.1-8b-instant';
 // const MODEL = 'llama-3.1-8b-instant';
 // function clean(t) { return t.replace(/```json/g,'').replace(/```/g,'').trim(); }
 
