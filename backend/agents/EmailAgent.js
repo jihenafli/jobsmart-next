@@ -1,7 +1,15 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-function getClient() {
-  return new Resend(process.env.RESEND_API_KEY);
+function getTransporter() {
+  return nodemailer.createTransport({
+    host:   'smtp.gmail.com',
+    port:   465,          // ✅ port 465 SSL — non bloqué sur Render
+    secure: true,         // ✅ SSL direct (pas STARTTLS)
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 }
 
 async function sendApplication({
@@ -17,18 +25,22 @@ async function sendApplication({
   if (!to) throw new Error('Destinataire manquant');
 
   console.log('📧 EmailAgent: envoi vers', to);
-  console.log('📧 RESEND_API_KEY présent:', !!process.env.RESEND_API_KEY);
-
-  const resend = getClient();
+  console.log('📧 EMAIL_USER:', process.env.EMAIL_USER);
 
   const attachments = cvBuffer
-    ? [{ filename: cvFileName || `CV_${candidateName}.pdf`, content: cvBuffer }]
+    ? [{ filename: cvFileName || `CV_${candidateName}.pdf`, content: cvBuffer, contentType: 'application/pdf' }]
     : [];
 
-  const { data, error } = await resend.emails.send({
-    from:     'JobSmart AI <onboarding@resend.dev>',
-    to:       [to],
-    reply_to: candidateEmail || undefined,
+  const transporter = getTransporter();
+
+  // Vérifier connexion SMTP
+  await transporter.verify();
+  console.log('✅ SMTP 465 connecté');
+
+  const info = await transporter.sendMail({
+    from:     process.env.EMAIL_USER,
+    to,
+    reply_to: candidateEmail || process.env.EMAIL_USER,
     subject:  `Candidature — ${jobTitle} chez ${company}`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;">
@@ -41,7 +53,8 @@ async function sendApplication({
           <div style="white-space:pre-line;line-height:1.8;font-size:15px;">${coverLetter}</div>
           <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;">
           <p style="font-size:13px;color:#999;margin:0;">
-            <strong>${candidateName}</strong>${candidateEmail ? ` · ${candidateEmail}` : ''}<br/>
+            <strong>${candidateName}</strong>
+            ${candidateEmail ? ` · ${candidateEmail}` : ''}<br/>
             ${attachments.length > 0 ? '📎 CV joint en pièce jointe' : ''}
           </p>
         </div>
@@ -51,33 +64,34 @@ async function sendApplication({
     attachments,
   });
 
-  if (error) {
-    console.error('❌ Resend error:', error);
-    throw new Error(`Erreur envoi email: ${error.message}`);
+  console.log('✅ Email envoyé:', info.messageId);
+  console.log('📨 Accepté:', info.accepted);
+
+  if (info.rejected?.length > 0) {
+    throw new Error(`Email rejeté: ${info.rejected.join(', ')}`);
   }
 
-  console.log('✅ Email envoyé via Resend, ID:', data?.id);
-  return data;
+  return info;
 }
 
 async function sendWelcome({ to, name }) {
   if (!to) return;
-
-  const resend = getClient();
-
-  const { error } = await resend.emails.send({
-    from:    'JobSmart AI <onboarding@resend.dev>',
-    to:      [to],
-    subject: 'Bienvenue sur JobSmart AI 🚀',
-    html: `
-      <div style="font-family:Arial;max-width:600px;margin:auto;">
-        <h2 style="color:#1D9E75;">Bienvenue ${name} !</h2>
-        <p>Ton compte est prêt. Upload ton CV et trouve ton emploi !</p>
-      </div>
-    `,
-  });
-
-  if (error) console.error('❌ Welcome email error:', error);
+  try {
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from:    process.env.EMAIL_USER,
+      to,
+      subject: 'Bienvenue sur JobSmart AI 🚀',
+      html: `
+        <div style="font-family:Arial;max-width:600px;margin:auto;">
+          <h2 style="color:#1D9E75;">Bienvenue ${name} !</h2>
+          <p>Ton compte est prêt. Upload ton CV et trouve ton emploi !</p>
+        </div>
+      `,
+    });
+  } catch (e) {
+    console.error('Welcome email error:', e.message);
+  }
 }
 
 module.exports = { sendApplication, sendWelcome };
