@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 // ============================================
 // ROUTES — JobSmart AI OS v4 (NO PAYWALL)
 // ============================================
@@ -228,9 +219,18 @@ appRouter.post('/send', auth, async (req, res) => {
     const { job, coverLetter, recipientEmail } = req.body;
     const user = req.user;
 
-    const to = recipientEmail || job?.companyEmail;
+    const rawEmail = recipientEmail || job?.companyEmail;
 
-    console.log('📧 to =', to);
+    // ✅ Validation email — évite les timeouts SMTP sur emails invalides
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const to = rawEmail && emailRegex.test(rawEmail.trim()) ? rawEmail.trim() : null;
+
+    console.log('📧 rawEmail =', rawEmail);
+    console.log('📧 to (validé) =', to);
+
+    if (recipientEmail && !to) {
+      return res.status(400).json({ error: `Email invalide : "${recipientEmail}" — vérifiez l'adresse saisie` });
+    }
 
     const cv = await CV.findOne({ userId: user._id }).sort({ createdAt: -1 });
 
